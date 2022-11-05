@@ -4,6 +4,7 @@
   (:gen-class))
 
 (load "ops")
+(load "eval")
 
 (defn -main
   "I don't do a whole lot ... yet."

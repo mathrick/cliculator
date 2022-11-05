@@ -34,3 +34,30 @@
       (test-it (op :- "foo"))
       (test-it (op :* 12))
       (test-it (op :+ {:op :+})))))
+
+(deftest evaluation
+  (testing "Numbers evaluate to themselves"
+    (is (= (eval-op 13) 13)))
+
+  (testing "Simple unary operators evaluate correctly"
+    (is (= (eval-op (op :+ 11)) (+ 11)))
+    (is (= (eval-op (op :- 42)) (- 42))))
+
+  (testing "Simple binary operators evaluate correctly"
+    (is (= (eval-op (op :+ 1 2)) (+ 1 2)))
+    (is (= (eval-op (op :+ -1 2)) (+ -1 2)))
+    (is (= (eval-op (op :- 7 5)) (- 7 5)))
+    (is (= (eval-op (op :- 5 7)) (- 5 7)))
+    (is (= (eval-op (op :* 2 8)) (* 2 8)))
+    (is (= (eval-op (op :* -2 -8)) (* -2 -8)))
+    (is (= (eval-op (op :/ 8 4)) (/ 8 4)))
+    (is (= (eval-op (op :/ 8 -4)) (/ 8 -4)))
+    (is (= (eval-op (op :/ 1 3)) (/ 1 3))))
+
+  (testing "Compound operators evaluate correctly"
+    (let [x (op :+ 42 13)
+          y (op :* 11 23)
+          z (op :/ x y)
+          expr (op :+ 13 z)]
+      (is (= (eval-op expr) (+ 13 (/ (+ 42 13)
+                                     (* 11 23))))))))
