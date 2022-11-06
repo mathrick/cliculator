@@ -5,7 +5,8 @@
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/core.match "1.0.0"]
-                 [org.clojure/tools.macro "0.1.5"]]
+                 [org.clojure/tools.macro "0.1.5"]
+                 [instaparse "1.4.12"]]
   :main ^:skip-aot cliculator.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

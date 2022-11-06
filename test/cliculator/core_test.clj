@@ -61,3 +61,28 @@
           expr (op :+ 13 z)]
       (is (= (eval-op expr) (+ 13 (/ (+ 42 13)
                                      (* 11 23))))))))
+
+(deftest parser
+  (testing "Simple ordinary notation can be parsed successfully"
+    (is (= (parse :ordinary "42") 42))
+
+    (is (= (parse :ordinary "-42") (op :- 42)))
+    (is (= (parse :ordinary "- 42") (op :- 42)))
+
+    (is (= (parse :ordinary "+11") (op :+ 11)))
+    (is (= (parse :ordinary "+ 11") (op :+ 11)))
+
+    (is (= (parse :ordinary "13 + 11") (op :+ 13 11)))
+    (is (= (parse :ordinary "13 - 11") (op :- 13 11)))
+    (is (= (parse :ordinary "13 * 11") (op :* 13 11)))
+    (is (= (parse :ordinary "13 / 11") (op :/ 13 11))))
+
+  (testing "Complex ordinary notation can be parsed successfully"
+    (is (= (parse :ordinary "13 + 11 - 2") (op :- (op :+ 13 11) 2)))
+    (is (= (parse :ordinary "13 + 11 * 2") (op :+ 13 (op :* 11 2))))
+    (is (= (parse :ordinary "(13 + 11) * 2") (op :* (op :+ 13 11) 2)))
+
+    (is (= (parse :ordinary "42 - 21 / 7") (op :- 42 (op :/ 21 7))))
+    (is (= (parse :ordinary "(42 - 21) / 7") (op :/ (op :- 42 21) 7))))
+
+  (testing "Reverse Polish notation can be parsed successfully"))
