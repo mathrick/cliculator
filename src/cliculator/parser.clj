@@ -1,7 +1,5 @@
 (in-ns 'cliculator.core)
 
-(defmulti parse (fn [style expr] style))
-
 (defparser ordinary-notation
   "
 <expr> = op
@@ -29,9 +27,14 @@ add = expr expr <ws> <'+'>
 sub = expr expr <ws> <'-'>
 mul = expr expr <ws> <'*'>
 div = expr expr <ws> <'/'>
+(* number is a regex because we need it to be greedy, otherwise '42 +' will be parsed as '4 2 +' *)
 number = <ws>? #'-?[0-9]+' <ws>?
 ws = #'\\s+'
-")
+"
+  :no-slurp true)
+
+(def parsers "Map of notation to parser for that notation"
+  {:ordinary ordinary-notation :rpn rpn})
 
 (defn- normalise-tree [tree]
   "Common helper to clean up and normalise the parse tree for both ordinary and RPN
@@ -45,16 +48,12 @@ ws = #'\\s+'
                                  :pos (partial op :+)}
                                 tree))
 
-(defn parse-it [parser expr]
-  (match (->> expr
-              (insta/parse parser)
-              normalise-tree)
-    (fail :guard insta/failure?) (throw (IllegalArgumentException. (instaparse.failure/pprint-failure fail)))
-    ([nested] :seq) nested))
-
-
-(defmethod parse :ordinary [_ expr]
-  (parse-it ordinary-notation expr))
-
-(defmethod parse :rpn [_ expr]
-  (parse-it rpn expr))
+(defn parse [style expr]
+  (let [parser (parsers style)]
+    (when-not parser
+      (throw (IllegalArgumentException. (format "Parser for notation '%s' not found"))))
+    (match (->> expr
+                (insta/parse parser)
+                normalise-tree)
+      (fail :guard insta/failure?) (throw (IllegalArgumentException. (instaparse.failure/pprint-failure fail)))
+      ([nested] :seq) nested)))
