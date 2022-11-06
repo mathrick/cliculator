@@ -6,7 +6,8 @@
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/core.match "1.0.0"]
                  [org.clojure/tools.macro "0.1.5"]
-                 [instaparse "1.4.12"]]
+                 [instaparse "1.4.12"]
+                 [cli-matic "0.5.4"]]
   :main ^:skip-aot cliculator.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
