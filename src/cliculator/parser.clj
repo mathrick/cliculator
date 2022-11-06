@@ -22,22 +22,39 @@ ws = #'\\s*'
 "
   :no-slurp true)
 
-(defmethod parse :ordinary [_ expr]
-  (let [binopify (fn [left sym right]
-                   (op (keyword sym) left right))
-        unopify (fn [sym operand]
-                  (op (keyword sym operand)))
-        result (insta/parse ordinary-notation expr)
-        result (insta/transform {:number (comp clojure.edn/read-string str)
+(defparser rpn
+  "
+<expr> = number | add | sub | mul | div
+add = expr expr <ws> <'+'>
+sub = expr expr <ws> <'-'>
+mul = expr expr <ws> <'*'>
+div = expr expr <ws> <'/'>
+number = <ws>? #'-?[0-9]+' <ws>?
+ws = #'\\s+'
+")
+
+(defn- normalise-tree [tree]
+  "Common helper to clean up and normalise the parse tree for both ordinary and RPN
+  notation, so that only a tree of ops which can be passed directly to eval-op is left"
+  (insta/transform {:number (comp clojure.edn/read-string str)
                                  :add (partial op :+)
                                  :sub (partial op :-)
                                  :mul (partial op :*)
                                  :div (partial op :/)
                                  :neg (partial op :-)
                                  :pos (partial op :+)}
-                                result)]
-    result
-    (match result
-      (_ :guard insta/failure?) (throw (IllegalArgumentException. (instaparse.failure/pprint-failure result)))
-      ([nested] :seq) nested
-      :else result)))
+                                tree))
+
+(defn parse-it [parser expr]
+  (match (->> expr
+              (insta/parse parser)
+              normalise-tree)
+    (fail :guard insta/failure?) (throw (IllegalArgumentException. (instaparse.failure/pprint-failure fail)))
+    ([nested] :seq) nested))
+
+
+(defmethod parse :ordinary [_ expr]
+  (parse-it ordinary-notation expr))
+
+(defmethod parse :rpn [_ expr]
+  (parse-it rpn expr))

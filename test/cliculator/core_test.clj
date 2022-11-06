@@ -85,4 +85,34 @@
     (is (= (parse :ordinary "42 - 21 / 7") (op :- 42 (op :/ 21 7))))
     (is (= (parse :ordinary "(42 - 21) / 7") (op :/ (op :- 42 21) 7))))
 
-  (testing "Reverse Polish notation can be parsed successfully"))
+  (testing "Reverse Polish notation can be parsed successfully"
+    (is (= (parse :rpn "42") 42))
+    (is (= (parse :rpn "-42") -42))
+    (is (= (parse :rpn "42 12 +") (op :+ 42 12)))
+    (is (= (parse :rpn "42 12 + 7 -") (op :- (op :+ 42 12) 7)))
+    (is (= (parse :rpn "42 -12 + 7 -") (op :- (op :+ 42 -12) 7)))
+    (is (= (parse :rpn "42 12 15 13 + + +") (op :+ 42 (op :+ 12 (op :+ 15 13)))))))
+
+(deftest parsing-and-evaluation
+  (testing "Ordinary notation expression can be parsed and evaluated correctly"
+    (let [parse-and-eval (fn [expr] (eval-op (parse :ordinary expr)))]
+      (is (= (parse-and-eval "42") 42))
+      (is (= (parse-and-eval "-42") -42))
+
+      (is (= (parse-and-eval "+11") 11))
+      (is (= (parse-and-eval "13 / 11") 13/11))
+
+      (is (= (parse-and-eval "13 + 11 - 2") 22))
+      (is (= (parse-and-eval "13 + 11 * 2") 35))
+      (is (= (parse-and-eval "(13 + 11) * 2") 48))
+
+      (is (= (parse-and-eval "42 - 21 / 7") (- 42 21/7)))
+      (is (= (parse-and-eval "(42 - 21) / 7") 3))))
+  (testing "Reverse Polish notation expression can be parsed and evaluated correctly"
+    (let [parse-and-eval (fn [expr] (eval-op (parse :rpn expr)))]
+      (is (= (parse-and-eval "42") 42))
+      (is (= (parse-and-eval "-42") -42))
+      (is (= (parse-and-eval "42 12 +") 54))
+      (is (= (parse-and-eval "42 12 + 7 -") 47))
+      (is (= (parse-and-eval "42 -12 + 7 -") 23))
+      (is (= (parse-and-eval "42 12 15 13 + + /") 42/40)))))
