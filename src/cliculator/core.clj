@@ -24,7 +24,9 @@
         prompt "? "
         result "> "]
     (loop [style style
-           input nil
+           ;; line-seq reads in a line immediately, which means we wouldn't be able to show the
+           ;; prompt first, so we need to make it fully lazy manually
+           input (lazy-seq (line-seq (java.io.BufferedReader. *in*)))
            greeting true]
       (when (and greeting (not quiet))
         (println (format "Using notation %s" style))
@@ -33,39 +35,42 @@
       (when-not quiet
         (print prompt))
       (flush)
-      ;; Need to wait to bind input until now, rather than at the top of the loop, since
-      ;; line-seq reads in a line immediately, which means we wouldn't be able to show the
-      ;; prompt first
-      (let [input (or input (line-seq (java.io.BufferedReader. *in*)))
-            line (first input)
-            trimmed (trim line)]
+      (let [line (first input)
+            ;; Wrap it in a lazy seq so it doesn't read until the result and next prompt has been shown
+            next-line (lazy-seq (next input))
+            trimmed (and line (trim line))]
         (cond
-          (= trimmed quit-cmd) nil ;; exit
-          ((set styles) trimmed) (recur (clojure.edn/read-string trimmed) (next input) true)
-          (empty? trimmed) (recur style (next input) false)
+          (or (not line)
+              (= trimmed quit-cmd)) nil ;; exit
+          ((set styles) trimmed) (recur (clojure.edn/read-string trimmed) next-line true)
+          (empty? trimmed) (recur style next-line false)
           true (do
                  (try
                    (println (format "%s%s" (str (when-not quiet result))
                                     (eval-op (parse style line))))
                    (catch IllegalArgumentException e
                      (println (ex-message e))))
-                 (recur style (next input) false)))))))
+                 (recur style next-line false)))))))
+
+(def CLI-opt-style
+  [{:option "style" :short "s" :type (set (keys parsers)) :default :ordinary
+    :description "Arithmetic notation to use for parsing input expressions"}])
 
 (def CLI
   {:app {:comman "cliculator"
          :description "Simple CLI calculator"
          :version "0.1.0"}
-   :global-opts [{:option "style" :short "s" :type (set (keys parsers)) :default :ordinary
-                  :description "Arithmetic notation to use for parsing input expressions"}]
    :commands [{:command "eval"
                :description "Evaluate and print a single expression"
-               :opts [{:option "expr" :short 0 :type :string :as "EXPR"
-                       :description "input expression to evaluate"}]
+               :opts (into CLI-opt-style
+                           [{:option "expr" :short 0 :type :string :as "EXPR"
+                             :description "input expression to evaluate"}])
                :runs handler-eval-single}
               {:command "repl"
                :description "Enter interactive REPL"
-               :opts [{:option "quiet" :short "q" :type :with-flag
-                       :description "Don't print REPL prompt and result markers"}]
+               :opts (into CLI-opt-style
+                           [{:option "quiet" :short "q" :type :with-flag
+                             :description "Don't print REPL prompt and result markers"}])
                :runs handler-repl}]})
 
 (defn -main
