@@ -63,6 +63,9 @@
                                      (* 11 23))))))))
 
 (deftest parser
+  (testing "Unknown styles return an error"
+    (is (thrown? IllegalArgumentException
+                 (parse :this-style-does-not-exist "fourty-two"))))
   (testing "Simple ordinary notation can be parsed successfully"
     (is (= (parse :ordinary "42") 42))
 
@@ -91,7 +94,13 @@
     (is (= (parse :rpn "42 12 +") (op :+ 42 12)))
     (is (= (parse :rpn "42 12 + 7 -") (op :- (op :+ 42 12) 7)))
     (is (= (parse :rpn "42 -12 + 7 -") (op :- (op :+ 42 -12) 7)))
-    (is (= (parse :rpn "42 12 15 13 + + +") (op :+ 42 (op :+ 12 (op :+ 15 13)))))))
+    (is (= (parse :rpn "42 12 15 13 + + +") (op :+ 42 (op :+ 12 (op :+ 15 13))))))
+
+  (testing "Invalid expressions cause a parse error"
+    (is (thrown-with-msg? IllegalArgumentException #"Parse error"
+                          (parse :ordinary "1+ 3 - * 10 + +")))
+    (is (thrown-with-msg? IllegalArgumentException #"Parse error"
+                          (parse :rpn "1 + (3 * 8)")))))
 
 (deftest parsing-and-evaluation
   (testing "Ordinary notation expression can be parsed and evaluated correctly"

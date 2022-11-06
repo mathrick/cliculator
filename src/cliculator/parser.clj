@@ -51,9 +51,11 @@ ws = #'\\s+'
 (defn parse [style expr]
   (let [parser (parsers style)]
     (when-not parser
-      (throw (IllegalArgumentException. (format "Parser for notation '%s' not found"))))
+      (throw (IllegalArgumentException. (format "Parser for notation '%s' not found" style))))
     (match (->> expr
                 (insta/parse parser)
                 normalise-tree)
-      (fail :guard insta/failure?) (throw (IllegalArgumentException. (instaparse.failure/pprint-failure fail)))
+      (fail :guard insta/failure?) (throw (IllegalArgumentException.
+                                           (with-out-str
+                                             (instaparse.failure/pprint-failure fail))))
       ([nested] :seq) nested)))
